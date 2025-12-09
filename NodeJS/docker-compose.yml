@@ -1,14 +1,25 @@
 version: '3.9'
 services:
-  api:
-    build: .
-    container_name: node_api
+#  api:
+#    build: .
+#    container_name: node_api
+#    ports:
+#      - "3000:3000"
+#    command: npm run dev
+#    environment:
+#      DATABASE_URL: postgres://postgres:postgres@db:5432/mydb
+#    depends_on:
+#      - db
+
+  frontend:
+    build: ./frontend
     ports:
       - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
     environment:
-      DATABASE_URL: postgres://postgres:postgres@db:5432/mydb
-    depends_on:
-      - db
+      - CHOKIDAR_USEPOLLING=true
 
   db:
     image: postgres:15
@@ -22,6 +33,7 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ./db-init:/docker-entrypoint-initdb.d
 
 #  pgadmin:
 #    image: dpage/pgadmin4
