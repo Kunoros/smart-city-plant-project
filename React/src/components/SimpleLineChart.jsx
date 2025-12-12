@@ -22,7 +22,12 @@ export default function SimpleLineChart({ series = [], height = 120, yDomain = n
   const len = series[0].points.length;
   const width = Math.min(720, Math.max(200, len * 40));
 
-  const xFor = i => padding + (i / Math.max(1, len - 1)) * (width - padding * 2);
+  // reserve extra left space for Y axis labels
+  const labelArea = 48; // px reserved on left for labels
+  const leftPadding = padding + labelArea;
+  const rightPadding = padding;
+
+  const xFor = i => leftPadding + (i / Math.max(1, len - 1)) * (width - leftPadding - rightPadding);
   const yFor = v => {
     if (max === min) return height / 2;
     // clamp v to domain to avoid drawing outside
@@ -43,15 +48,50 @@ export default function SimpleLineChart({ series = [], height = 120, yDomain = n
     return { name: s.name, color: s.color || '#333', last };
   });
 
+  // build Y axis ticks (5 ticks by default)
+  const ticksCount = 5;
+  const ticks = [];
+  if (max === min) {
+    ticks.push({ value: min, y: yFor(min) });
+  } else {
+    for (let i = 0; i < ticksCount; i++) {
+      const t = min + (i / (ticksCount - 1)) * (max - min);
+      ticks.push({ value: t, y: yFor(t) });
+    }
+  }
+
+  const formatValue = v => {
+    // simple formatting: integer when values are effectively integers, else 2 decimals
+    if (v == null || Number.isNaN(v)) return '-';
+    if (Math.abs(v - Math.round(v)) < 0.0001) return String(Math.round(v));
+    return String(Number(v).toFixed(2));
+  };
+
   return (
     <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
       <div style={{ overflowX: 'auto' }}>
         <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
           {/* grid lines */}
           <g stroke="#eee">
-            <line x1={padding} x2={width - padding} y1={padding} y2={padding} />
-            <line x1={padding} x2={width - padding} y1={height / 2} y2={height / 2} />
-            <line x1={padding} x2={width - padding} y1={height - padding} y2={height - padding} />
+            <line x1={leftPadding} x2={width - rightPadding} y1={padding} y2={padding} />
+            <line x1={leftPadding} x2={width - rightPadding} y1={height / 2} y2={height / 2} />
+            <line x1={leftPadding} x2={width - rightPadding} y1={height - padding} y2={height - padding} />
+          </g>
+
+          {/* Y axis line and ticks */}
+          <g>
+            {/* axis line */}
+            <line x1={leftPadding} x2={leftPadding} y1={padding} y2={height - padding} stroke="#cbd5e1" />
+
+            {/* ticks and labels */}
+            {ticks.map((t, i) => (
+              <g key={i}>
+                <line x1={leftPadding - 6} x2={leftPadding} y1={t.y} y2={t.y} stroke="#cbd5e1" />
+                <text x={leftPadding - 10} y={t.y + 4} fontSize={12} fill="#6b7280" textAnchor="end">
+                  {formatValue(t.value)}
+                </text>
+              </g>
+            ))}
           </g>
 
           {/* series paths */}
