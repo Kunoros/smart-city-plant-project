@@ -1,4 +1,4 @@
-﻿import React from "react";
+﻿import React, { useState, useRef } from "react";
 
 // SimpleLineChart
 // Props:
@@ -67,10 +67,39 @@ export default function SimpleLineChart({ series = [], height = 120, yDomain = n
     return String(Number(v).toFixed(2));
   };
 
+  // Hover state
+  const [hoverIndex, setHoverIndex] = useState(null);
+  const svgRef = useRef(null);
+
+  const onSvgMouseMove = e => {
+    if (!svgRef.current) return;
+    const rect = svgRef.current.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const ratio = (mouseX - leftPadding) / (width - leftPadding - rightPadding);
+    const fi = Math.round(ratio * (len - 1));
+    const idx = Math.max(0, Math.min(len - 1, fi));
+    setHoverIndex(idx);
+  };
+
+  const onSvgMouseLeave = () => {
+    setHoverIndex(null);
+  };
+
+  // tooltip layout
+  const tooltipWidth = 140;
+  const tooltipPadding = 6;
+
   return (
     <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-      <div style={{ overflowX: 'auto' }}>
-        <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
+      <div style={{ overflowX: 'auto', position: 'relative' }}>
+        <svg
+          ref={svgRef}
+          width={width}
+          height={height}
+          viewBox={`0 0 ${width} ${height}`}
+          onMouseMove={onSvgMouseMove}
+          onMouseLeave={onSvgMouseLeave}
+        >
           {/* grid lines */}
           <g stroke="#eee">
             <line x1={leftPadding} x2={width - rightPadding} y1={padding} y2={padding} />
@@ -103,6 +132,59 @@ export default function SimpleLineChart({ series = [], height = 120, yDomain = n
           {paths[0].pts.map((pt, i) => (
             <circle key={i} cx={xFor(i)} cy={yFor(pt.v)} r={2.2} fill={paths[0].color} />
           ))}
+
+          {/* hover indicators */}
+          {hoverIndex !== null && (
+            <g>
+              {/* vertical hover line */}
+              <line
+                x1={xFor(hoverIndex)}
+                x2={xFor(hoverIndex)}
+                y1={padding}
+                y2={height - padding}
+                stroke="#9ca3af"
+                strokeWidth={1}
+                strokeDasharray="4 3"
+              />
+
+              {/* circles for each series at hover index */}
+              {paths.map((p, si) => {
+                const pt = p.pts[hoverIndex];
+                if (!pt) return null;
+                return (
+                  <circle key={si} cx={xFor(hoverIndex)} cy={yFor(pt.v)} r={4} fill="#fff" stroke={p.color} strokeWidth={2} />
+                );
+              })}
+
+              {/* tooltip box (SVG) - placed near top but shifted to avoid overflowing */}
+              <g>
+                {(() => {
+                  const txRaw = xFor(hoverIndex) + 8;
+                  const tx = Math.min(width - rightPadding - tooltipWidth - 8, Math.max(leftPadding + 6, txRaw));
+                  const ty = padding + 6;
+                  const lines = series.map(s => {
+                    const pts = s.points || [];
+                    const v = pts[hoverIndex] ? pts[hoverIndex].v : null;
+                    return { name: s.name, color: s.color || '#333', value: v };
+                  });
+
+                  return (
+                    <g transform={`translate(${tx}, ${ty})`}>
+                      <rect x={0} y={0} width={tooltipWidth} height={tooltipPadding * 2 + lines.length * 16} fill="#fff" stroke="#e5e7eb" rx={6} />
+                      {lines.map((ln, i) => (
+                        <g key={i} transform={`translate(${tooltipPadding}, ${tooltipPadding + i * 16})`}>
+                          <rect x={0} y={0} width={10} height={10} fill={ln.color} rx={2} />
+                          <text x={14} y={10} fontSize={12} fill="#111827">
+                            {ln.name}: {ln.value !== null && ln.value !== undefined ? formatValue(ln.value) : '-'}
+                          </text>
+                        </g>
+                      ))}
+                    </g>
+                  );
+                })()}
+              </g>
+            </g>
+          )}
         </svg>
       </div>
 
