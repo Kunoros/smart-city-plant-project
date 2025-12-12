@@ -1,19 +1,19 @@
 import {
-    createMachine,
-    deleteMachine,
-    getAllMachines,
-    getMachine,
-    updateMachine,
-} from '../services/machines.service.js';
+    createPlantPot,
+    deletePlantPot,
+    getAllPlantPots,
+    getPlantPot,
+    updatePlantPot,
+} from '../services/plantPots.service.js';
 
-class MachineController {
+class PlantPotController {
 
     async getAll(req, res, next) {
         console.log('[CTRL] getAll → START');
 
         try {
-            const machines = await getAllMachines();
-            return res.json(machines);
+            const plantPots = await getAllPlantPots();
+            return res.json(plantPots);
 
         } catch (err) {
             console.error('[CTRL] getAll → ERROR:', err);
@@ -25,13 +25,13 @@ class MachineController {
         console.log('[CTRL] getById → START', req.params);
 
         try {
-            const machine = await getMachine(req.params.id);
+            const plantPot = await getPlantPot(req.params.id);
 
-            if (!machine) {
+            if (!plantPot) {
                 return res.status(404).json({ message: 'Not found' });
             }
 
-            return res.json(machine);
+            return res.json(plantPot);
 
         } catch (err) {
             console.error('[CTRL] getById → ERROR:', err);
@@ -43,8 +43,8 @@ class MachineController {
         console.log('[CTRL] create → START', req.body);
 
         try {
-            const machine = await createMachine(req.body);
-            return res.status(201).json(machine);
+            const plantPot = await createPlantPot(req.body);
+            return res.status(201).json(plantPot);
 
         } catch (err) {
             console.error('[CTRL] create → ERROR:', err);
@@ -56,13 +56,7 @@ class MachineController {
         console.log('[CTRL] update → START', { params: req.params, body: req.body });
 
         try {
-            const { name, description } = req.body || {};
-
-            if (!name) {
-                return res.status(400).json({ message: 'Name is required' });
-            }
-
-            const updated = await updateMachine(req.params.id, name, description);
+            const updated = await updatePlantPot(req.params.id, req.body);
 
             if (!updated) {
                 return res.status(404).json({ message: 'Not found' });
@@ -80,7 +74,7 @@ class MachineController {
         console.log('[CTRL] delete → START', req.params);
 
         try {
-            const deleted = await deleteMachine(req.params.id);
+            const deleted = await deletePlantPot(req.params.id);
 
             if (!deleted) {
                 return res.status(404).json({ message: 'Not found' });
@@ -95,4 +89,4 @@ class MachineController {
     }
 }
 
-export default new MachineController();
+export default new PlantPotController();
